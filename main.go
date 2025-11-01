@@ -26,7 +26,7 @@ func main() {
 	if err != nil {
 		fmt.Printf("error opening database: %v\n", err)
 	}
-
+	defer db.Close()
 	dbQueries := database.New(db)
 
 	appState := state{
