@@ -49,3 +49,18 @@ func handlerRegister(s *state, cmd command) error {
 	fmt.Printf("user successfully created:\n%v\n", newUser)
 	return nil
 }
+
+func handlerListUsers(s *state, cmd command) error {
+	users, err := s.db.GetUsers(context.Background())
+	if err != nil {
+		return fmt.Errorf("error getting list of users: %w", err)
+	}
+	for _, user := range users {
+		if s.cfg.CurrentUserName == user.Name {
+			fmt.Printf("* %s (current)\n", user.Name)
+			continue
+		}
+		fmt.Printf("* %s\n", user.Name)
+	}
+	return nil
+}
