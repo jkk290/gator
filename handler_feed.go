@@ -9,14 +9,14 @@ import (
 	"github.com/jkk290/gator/internal/database"
 )
 
-func handlerAddFeed(s *state, cmd command) error {
+func handlerAddFeed(s *state, cmd command, currentUser database.User) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("not enough arguments, need name and url")
 	}
-	currentUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("error getting current user: %w", err)
-	}
+	// currentUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	// if err != nil {
+	// 	return fmt.Errorf("error getting current user: %w", err)
+	// }
 	userId := currentUser.ID
 	feedName := cmd.Args[0]
 	feedUrl := cmd.Args[1]
@@ -62,15 +62,16 @@ func handlerGetFeeds(s *state, cmd command) error {
 	return nil
 }
 
-func handlerAddFeedFollow(s *state, cmd command) error {
+func handlerAddFeedFollow(s *state, cmd command, currentUser database.User) error {
 	if len(cmd.Args) != 1 {
 		return fmt.Errorf("error not enough arguments, need url")
 	}
 	url := cmd.Args[0]
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("error getting user info")
-	}
+	// user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	// if err != nil {
+	// 	return fmt.Errorf("error getting user info")
+	// }
+	userId := currentUser.ID
 	feed, err := s.db.GetFeed(context.Background(), url)
 	if err != nil {
 		return fmt.Errorf("error getting feed info")
@@ -79,7 +80,7 @@ func handlerAddFeedFollow(s *state, cmd command) error {
 		ID:        uuid.New(),
 		CreatedAt: time.Now(),
 		UpdatedAt: time.Now(),
-		UserID:    user.ID,
+		UserID:    userId,
 		FeedID:    feed.ID,
 	})
 	if err != nil {
@@ -89,17 +90,18 @@ func handlerAddFeedFollow(s *state, cmd command) error {
 	return nil
 }
 
-func handlerGetUserFeeds(s *state, cmd command) error {
-	user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	if err != nil {
-		return fmt.Errorf("error getting user info")
-	}
-
-	feeds, err := s.db.GetUserFeeds(context.Background(), user.ID)
+func handlerGetUserFeeds(s *state, cmd command, currentUser database.User) error {
+	// user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
+	// if err != nil {
+	// 	return fmt.Errorf("error getting user info")
+	// }
+	userId := currentUser.ID
+	userName := currentUser.Name
+	feeds, err := s.db.GetUserFeeds(context.Background(), userId)
 	if err != nil {
 		return fmt.Errorf("error getting user's feeds: %w", err)
 	}
-	fmt.Printf("%s's Feeds\n", user.Name)
+	fmt.Printf("%s's Feeds\n", userName)
 	for _, feed := range feeds {
 		fmt.Printf("Name: %s\n", feed.FeedName)
 	}
