@@ -44,6 +44,9 @@ func main() {
 	cmds.register("users", handlerListUsers)
 	cmds.register("agg", handlerAgg)
 	cmds.register("addfeed", handlerAddFeed)
+	cmds.register("feeds", handlerGetFeeds)
+	cmds.register("follow", handlerAddFeedFollow)
+	cmds.register("following", handlerGetUserFeeds)
 
 	userInput := os.Args
 	if len(userInput) < 2 {
