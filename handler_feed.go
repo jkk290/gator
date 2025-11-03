@@ -13,10 +13,6 @@ func handlerAddFeed(s *state, cmd command, currentUser database.User) error {
 	if len(cmd.Args) != 2 {
 		return fmt.Errorf("not enough arguments, need name and url")
 	}
-	// currentUser, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	// if err != nil {
-	// 	return fmt.Errorf("error getting current user: %w", err)
-	// }
 	userId := currentUser.ID
 	feedName := cmd.Args[0]
 	feedUrl := cmd.Args[1]
@@ -67,10 +63,6 @@ func handlerAddFeedFollow(s *state, cmd command, currentUser database.User) erro
 		return fmt.Errorf("error not enough arguments, need url")
 	}
 	url := cmd.Args[0]
-	// user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	// if err != nil {
-	// 	return fmt.Errorf("error getting user info")
-	// }
 	userId := currentUser.ID
 	feed, err := s.db.GetFeed(context.Background(), url)
 	if err != nil {
@@ -91,10 +83,6 @@ func handlerAddFeedFollow(s *state, cmd command, currentUser database.User) erro
 }
 
 func handlerGetUserFeeds(s *state, cmd command, currentUser database.User) error {
-	// user, err := s.db.GetUser(context.Background(), s.cfg.CurrentUserName)
-	// if err != nil {
-	// 	return fmt.Errorf("error getting user info")
-	// }
 	userId := currentUser.ID
 	userName := currentUser.Name
 	feeds, err := s.db.GetUserFeeds(context.Background(), userId)
@@ -104,6 +92,26 @@ func handlerGetUserFeeds(s *state, cmd command, currentUser database.User) error
 	fmt.Printf("%s's Feeds\n", userName)
 	for _, feed := range feeds {
 		fmt.Printf("Name: %s\n", feed.FeedName)
+	}
+	return nil
+}
+
+func handlerUnfollowFeed(s *state, cmd command, currentUser database.User) error {
+	if len(cmd.Args) != 1 {
+		return fmt.Errorf("error need feed url")
+	}
+	userId := currentUser.ID
+	url := cmd.Args[0]
+	feed, err := s.db.GetFeed(context.Background(), url)
+	if err != nil {
+		return fmt.Errorf("error getting feed info: %w", err)
+	}
+	feedId := feed.ID
+	if err := s.db.Unfollow(context.Background(), database.UnfollowParams{
+		UserID: userId,
+		FeedID: feedId,
+	}); err != nil {
+		return fmt.Errorf("error unfollowing feed: %w", err)
 	}
 	return nil
 }
