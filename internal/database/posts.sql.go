@@ -11,6 +11,7 @@ import (
 	"time"
 
 	"github.com/google/uuid"
+	"github.com/lib/pq"
 )
 
 const addPost = `-- name: AddPost :one
@@ -64,41 +65,47 @@ func (q *Queries) AddPost(ctx context.Context, arg AddPostParams) (Post, error) 
 	return i, err
 }
 
-const getPostsByFeed = `-- name: GetPostsByFeed :many
-SELECT posts.id, posts.created_at, posts.updated_at, posts.title, posts.url, posts.description, posts.published_at, posts.feed_id, feeds.name FROM posts
+const getPostsByFeeds = `-- name: GetPostsByFeeds :many
+SELECT posts.id, posts.created_at, posts.updated_at, title, posts.url, description, published_at, feed_id, feeds.id, feeds.created_at, feeds.updated_at, name, feeds.url, user_id, last_fetched_at FROM posts
 JOIN feeds
 ON feeds.id = posts.feed_id
-WHERE feed_id = $1
-ORDER BY published_at ASC
+WHERE feed_id = ANY($1::uuid[])
+ORDER BY published_at DESC
 LIMIT $2
 `
 
-type GetPostsByFeedParams struct {
-	FeedID uuid.UUID
-	Limit  int32
+type GetPostsByFeedsParams struct {
+	Column1 []uuid.UUID
+	Limit   int32
 }
 
-type GetPostsByFeedRow struct {
-	ID          uuid.UUID
-	CreatedAt   time.Time
-	UpdatedAt   time.Time
-	Title       string
-	Url         string
-	Description sql.NullString
-	PublishedAt time.Time
-	FeedID      uuid.UUID
-	Name        string
+type GetPostsByFeedsRow struct {
+	ID            uuid.UUID
+	CreatedAt     time.Time
+	UpdatedAt     time.Time
+	Title         string
+	Url           string
+	Description   sql.NullString
+	PublishedAt   time.Time
+	FeedID        uuid.UUID
+	ID_2          uuid.UUID
+	CreatedAt_2   time.Time
+	UpdatedAt_2   time.Time
+	Name          string
+	Url_2         string
+	UserID        uuid.UUID
+	LastFetchedAt sql.NullTime
 }
 
-func (q *Queries) GetPostsByFeed(ctx context.Context, arg GetPostsByFeedParams) ([]GetPostsByFeedRow, error) {
-	rows, err := q.db.QueryContext(ctx, getPostsByFeed, arg.FeedID, arg.Limit)
+func (q *Queries) GetPostsByFeeds(ctx context.Context, arg GetPostsByFeedsParams) ([]GetPostsByFeedsRow, error) {
+	rows, err := q.db.QueryContext(ctx, getPostsByFeeds, pq.Array(arg.Column1), arg.Limit)
 	if err != nil {
 		return nil, err
 	}
 	defer rows.Close()
-	var items []GetPostsByFeedRow
+	var items []GetPostsByFeedsRow
 	for rows.Next() {
-		var i GetPostsByFeedRow
+		var i GetPostsByFeedsRow
 		if err := rows.Scan(
 			&i.ID,
 			&i.CreatedAt,
@@ -108,7 +115,13 @@ func (q *Queries) GetPostsByFeed(ctx context.Context, arg GetPostsByFeedParams) 
 			&i.Description,
 			&i.PublishedAt,
 			&i.FeedID,
+			&i.ID_2,
+			&i.CreatedAt_2,
+			&i.UpdatedAt_2,
 			&i.Name,
+			&i.Url_2,
+			&i.UserID,
+			&i.LastFetchedAt,
 		); err != nil {
 			return nil, err
 		}

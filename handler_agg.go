@@ -49,29 +49,34 @@ func scrapeFeeds(s *state) error {
 	if err != nil {
 		return fmt.Errorf("error fetching feed: %w", err)
 	}
-	for _, item := range RSSFeed.Channel.Item {
-		pubDate, err := timeParser(item.PubDate)
+	for _, post := range RSSFeed.Channel.Item {
+		pubDate, err := timeParser(post.PubDate)
 		if err != nil {
 			return fmt.Errorf("error converting published Date to time.Time: %w", err)
 		}
-		_, error := s.db.AddPost(context.Background(), database.AddPostParams{
+		savedPost, err := s.db.AddPost(context.Background(), database.AddPostParams{
 			ID:          uuid.New(),
 			CreatedAt:   time.Now(),
 			UpdatedAt:   time.Now(),
-			Title:       item.Title,
-			Url:         item.Link,
-			Description: sql.NullString{String: item.Description, Valid: true},
+			Title:       post.Title,
+			Url:         post.Link,
+			Description: sql.NullString{String: post.Description, Valid: true},
 			PublishedAt: pubDate,
 			FeedID:      feedId,
 		})
-		if error != nil {
-			return fmt.Errorf("error saving post to database: %w", error)
+		if err != nil {
+			return fmt.Errorf("error saving post to database: %w", err)
 		}
+		fmt.Printf("successfully saved post to db, %s\n", savedPost.Title)
 	}
 	return nil
 }
 
 func timeParser(timeStamp string) (time.Time, error) {
-	layout := "Nov 4, 2025 at 6:00am (HST)"
-	return time.Parse(layout, timeStamp)
+	layout := "Mon, 02 Jan 2006 15:04:05 -0700"
+	converted, err := time.Parse(layout, timeStamp)
+	if err != nil {
+		return time.Time{}, err
+	}
+	return converted, nil
 }

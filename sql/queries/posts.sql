@@ -12,10 +12,10 @@ VALUES (
 )
 RETURNING *;
 
--- name: GetPostsByFeed :many
-SELECT posts.*, feeds.name FROM posts
+-- name: GetPostsByFeeds :many
+SELECT * FROM posts
 JOIN feeds
 ON feeds.id = posts.feed_id
-WHERE feed_id = $1
-ORDER BY published_at ASC
+WHERE feed_id = ANY($1::uuid[])
+ORDER BY published_at DESC
 LIMIT $2;
