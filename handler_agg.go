@@ -6,6 +6,7 @@ import (
 	"fmt"
 	"time"
 
+	"github.com/google/uuid"
 	"github.com/jkk290/gator/internal/database"
 	"github.com/jkk290/gator/internal/feedapi"
 )
@@ -25,7 +26,6 @@ func handlerAgg(s *state, cmd command) error {
 	for ; ; <-ticker.C {
 		scrapeFeeds(s)
 	}
-	return nil
 }
 
 func scrapeFeeds(s *state) error {
@@ -50,7 +50,28 @@ func scrapeFeeds(s *state) error {
 		return fmt.Errorf("error fetching feed: %w", err)
 	}
 	for _, item := range RSSFeed.Channel.Item {
-		fmt.Printf("Title: %s\n", item.Title)
+		pubDate, err := timeParser(item.PubDate)
+		if err != nil {
+			return fmt.Errorf("error converting published Date to time.Time: %w", err)
+		}
+		_, error := s.db.AddPost(context.Background(), database.AddPostParams{
+			ID:          uuid.New(),
+			CreatedAt:   time.Now(),
+			UpdatedAt:   time.Now(),
+			Title:       item.Title,
+			Url:         item.Link,
+			Description: sql.NullString{String: item.Description, Valid: true},
+			PublishedAt: pubDate,
+			FeedID:      feedId,
+		})
+		if error != nil {
+			return fmt.Errorf("error saving post to database: %w", error)
+		}
 	}
 	return nil
+}
+
+func timeParser(timeStamp string) (time.Time, error) {
+	layout := "Nov 4, 2025 at 6:00am (HST)"
+	return time.Parse(layout, timeStamp)
 }
